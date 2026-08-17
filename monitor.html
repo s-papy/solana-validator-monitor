@@ -1,0 +1,49 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Solana &mdash; sant&eacute; du r&eacute;seau et des validateurs</title><style>
+:root{--bg:#0d1117;--pan:#161b22;--bd:#30363d;--tx:#e6edf3;--mu:#8b949e;--ac:#2ea043;--al:#f85149;--hi:#58a6ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);
+font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+.w{max-width:1100px;margin:0 auto;padding:32px 20px 64px}
+h1{font-size:26px;margin:0 0 6px}
+h2{font-size:18px;margin:38px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--bd)}
+.s{color:var(--mu);font-size:13px;margin:4px 0 0}
+.pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;margin-left:8px;vertical-align:middle}
+.ok{background:rgba(46,160,67,.15);color:var(--ac);border:1px solid rgba(46,160,67,.4)}
+.ko{background:rgba(248,81,73,.15);color:var(--al);border:1px solid rgba(248,81,73,.4)}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin-top:18px}
+.c{background:var(--pan);border:1px solid var(--bd);border-radius:10px;padding:14px 16px}
+.c .t{color:var(--mu);font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+.c .v{font-size:27px;font-weight:650;margin:6px 0 2px;color:var(--hi)}
+.c .n{color:var(--mu);font-size:12px}
+.tw{overflow-x:auto;margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap}
+th{color:var(--mu);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+td.r,th.r{text-align:right}
+td.m{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:var(--mu)}
+td.d{color:var(--mu);font-size:12.5px;white-space:normal}
+.alerte{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.4);border-radius:10px;padding:14px 16px;margin-top:18px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:var(--hi)}
+footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--bd);color:var(--mu);font-size:12.5px}
+</style></head><body><div class="w">
+<h1>Solana &mdash; sant&eacute; du r&eacute;seau et des validateurs<span class="pill ok">tous contr&ocirc;les pass&eacute;s</span></h1>
+<p class="s">Instantan&eacute; du <b>2026-08-15T21:09:46Z</b> &middot; lecture RPC directe sur endpoint public,
+sans indexeur tiers, sans cl&eacute; API. Dernier bloc dat&eacute; : 2026-08-15T21:09:23Z (retard d'horloge 23 s).</p>
+
+<div class="g"><div class="c"><div class="t">Époque</div><div class="v">1017</div><div class="n">38.162 % parcourus</div></div><div class="c"><div class="t">Slot</div><div class="v">439 508 861</div><div class="n">fin d'époque ~31.06 h</div></div><div class="c"><div class="t">TPS moyen</div><div class="v">3 753.3</div><div class="n">2 122.2 hors votes</div></div><div class="c"><div class="t">Durée de slot</div><div class="v">0.4186 s</div><div class="n">observée sur 1 800 s</div></div><div class="c"><div class="t">Validateurs actifs</div><div class="v">688</div><div class="n">9 délinquants (1.29 %)</div></div><div class="c"><div class="t">Coefficient de Nakamoto</div><div class="v">18</div><div class="n">validateurs pour bloquer le réseau</div></div><div class="c"><div class="t">Stake actif</div><div class="v">435 419 200 SOL</div><div class="n">top 10 : 24.4 %</div></div><div class="c"><div class="t">SOL en stake</div><div class="v">68.88 %</div><div class="n">sur 632 261 887 SOL émis</div></div></div>
+<h2>Les 15 plus gros validateurs</h2>
+<div class="tw"><table><thead><tr><th class="r">#</th><th>identit&eacute;</th><th class="r">stake (SOL)</th>
+<th class="r">part</th><th class="r">commission</th></tr></thead><tbody><tr><td class="r">1</td><td class="m">Fd7btgyS…2v69Nk</td><td class="r">17 161 316</td><td class="r">3.941 %</td><td class="r">7 %</td></tr><tr><td class="r">2</td><td class="m">HEL1USMZ…v1e2TU</td><td class="r">15 969 044</td><td class="r">3.668 %</td><td class="r">0 %</td></tr><tr><td class="r">3</td><td class="m">JUPiTERr…LT1h4b</td><td class="r">12 492 108</td><td class="r">2.869 %</td><td class="r">5 %</td></tr><tr><td class="r">4</td><td class="m">DRpbCBMx…km21hy</td><td class="r">12 274 846</td><td class="r">2.819 %</td><td class="r">0 %</td></tr><tr><td class="r">5</td><td class="m">C8Bey3LK…99JP1k</td><td class="r">9 181 197</td><td class="r">2.109 %</td><td class="r">7 %</td></tr><tr><td class="r">6</td><td class="m">CAo1dCGY…umSve4</td><td class="r">8 981 926</td><td class="r">2.063 %</td><td class="r">10 %</td></tr><tr><td class="r">7</td><td class="m">E1r4Psq8…5RdxHL</td><td class="r">8 303 340</td><td class="r">1.907 %</td><td class="r">0 %</td></tr><tr><td class="r">8</td><td class="m">EvnRmnMr…JXqDo4</td><td class="r">7 969 078</td><td class="r">1.83 %</td><td class="r">7 %</td></tr><tr><td class="r">9</td><td class="m">9eGrDohd…xe8FoY</td><td class="r">7 340 396</td><td class="r">1.686 %</td><td class="r">5 %</td></tr><tr><td class="r">10</td><td class="m">Awes4Tr6…yGvpLM</td><td class="r">6 586 185</td><td class="r">1.513 %</td><td class="r">0 %</td></tr><tr><td class="r">11</td><td class="m">9jxgosAf…eynGFP</td><td class="r">6 122 617</td><td class="r">1.406 %</td><td class="r">100 %</td></tr><tr><td class="r">12</td><td class="m">JD549Hsb…UrHybB</td><td class="r">5 992 499</td><td class="r">1.376 %</td><td class="r">0 %</td></tr><tr><td class="r">13</td><td class="m">5pPRHnie…GwHzSm</td><td class="r">5 990 398</td><td class="r">1.376 %</td><td class="r">5 %</td></tr><tr><td class="r">14</td><td class="m">5Cchr1XG…6rq9Ux</td><td class="r">5 802 980</td><td class="r">1.333 %</td><td class="r">100 %</td></tr><tr><td class="r">15</td><td class="m">9rkJMARq…gFNDSQ</td><td class="r">4 658 022</td><td class="r">1.07 %</td><td class="r">8 %</td></tr></tbody></table></div>
+<h2>Contr&ocirc;les &mdash; 9 / 9 pass&eacute;s</h2>
+<p class="s">Chaque grandeur publi&eacute;e passe devant ces contr&ocirc;les. Aucun chiffre n'est interpol&eacute; :
+un appel RPC qui &eacute;choue laisse un trou d&eacute;clar&eacute;, jamais une valeur devin&eacute;e.</p>
+<div class="tw"><table><thead><tr><th>contr&ocirc;le</th><th class="r"></th><th>d&eacute;tail</th></tr></thead>
+<tbody><tr><td>epoque : progression dans [0,100]</td><td class="r">🟢</td><td class="d">slotIndex=164861 slotsInEpoch=432000</td></tr><tr><td>TPS strictement positif</td><td class="r">🟢</td><td class="d">min=3198.0 max=4334.5 sur 30 echantillons</td></tr><tr><td>duree de slot plausible (0,2 s - 2 s)</td><td class="r">🟢</td><td class="d">0.4186 s</td></tr><tr><td>controle du zero : au moins 100 validateurs actifs</td><td class="r">🟢</td><td class="d">688 actifs, 9 delinquants</td></tr><tr><td>somme des parts du top = 100 % a l arrondi pres</td><td class="r">🟢</td><td class="d">ecart 0 lamports</td></tr><tr><td>coefficient de Nakamoto plausible (1-100)</td><td class="r">🟢</td><td class="d">N = 18</td></tr><tr><td>offre : circulante <= totale</td><td class="r">🟢</td><td class="d">510970554 <= 632261887 SOL</td></tr><tr><td>deux endpoints independants : meme epoque</td><td class="r">🟢</td><td class="d">1017 vs 1017</td></tr><tr><td>deux endpoints independants : ecart de validateurs actifs <= 5</td><td class="r">🟢</td><td class="d">688 vs 688</td></tr></tbody></table></div>
+<p class="s">Recoupement sur un second endpoint indépendant — <code>https://api.mainnet-beta.solana.com</code> vs <code>https://solana-rpc.publicnode.com</code> : même époque <b>oui</b>, écart de slot <b>18</b>, validateurs actifs <b>688</b> vs <b>688</b>.</p>
+<h2>Historique des exécutions</h2><p class="s">Une ligne par exécution réelle. Rien n'est interpolé : une exécution ratée n'apparaît pas.</p><table><thead><tr><th>horodatage UTC</th><th class="r">époque</th><th class="r">TPS</th><th class="r">actifs</th><th class="r">délinquants</th></tr></thead><tbody><tr><td class="m">2026-08-15 21:04:35</td><td class="r">1 017</td><td class="r">3 710.2</td><td class="r">688</td><td class="r">9</td></tr><tr><td class="m">2026-08-15 21:05:38</td><td class="r">1 017</td><td class="r">3 743.5</td><td class="r">688</td><td class="r">9</td></tr><tr><td class="m">2026-08-15 21:07:00</td><td class="r">1 017</td><td class="r">3 778.8</td><td class="r">688</td><td class="r">9</td></tr><tr><td class="m">2026-08-15 21:07:10</td><td class="r">1 017</td><td class="r">3 778.8</td><td class="r">688</td><td class="r">9</td></tr><tr><td class="m">2026-08-15 21:09:46</td><td class="r">1 017</td><td class="r">3 753.3</td><td class="r">688</td><td class="r">9</td></tr></tbody></table>
+<h2>Ce que cet instantan&eacute; ne prouve pas</h2>
+<ul class="s"><li>Les deux endpoints du recoupement sont publics et gratuits : rien ne prouve qu ils ne partagent pas la meme infrastructure en amont. Un accord entre eux ecarte une panne locale ou une reponse tronquee, il NE PROUVE PAS l independance des sources.</li><li>getVoteAccounts ne rend que les validateurs VOTANTS connus du noeud interroge. Le compte absolu n est pas verifiable ici au-dela de l accord des deux endpoints.</li><li>Le temps restant de l epoque est une ESTIMATION : slots restants multiplies par la duree de slot observee sur la fenetre recente. Le reseau ne rend pas cette valeur.</li><li>Le TPS vient de getRecentPerformanceSamples, donc d une fenetre glissante recente, pas d un comptage exhaustif de la chaine.</li></ul>
+<footer>9 appels RPC &middot; 0 &eacute;chec(s) &middot; latence m&eacute;diane 148 ms &middot; 8.5 s.
+Endpoints : <code>https://api.mainnet-beta.solana.com</code>, <code>https://solana-rpc.publicnode.com</code>. Aucune d&eacute;pendance payante, aucun wallet, lecture seule.</footer>
+</div></body></html>
