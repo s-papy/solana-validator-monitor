@@ -165,5 +165,3 @@ Le script le lit desormais a chaque execution (`getAccountInfo`) et en fait un c
 **Fenetre de risque estimee :** au rythme du cycle 4.2 (~1 mois de beta.0 a stable), 4.3.0 stable arriverait mi-septembre. Le Q3 2026 annonce par la Fondation parait donc optimiste : Q4 2026 est plus vraisemblable. Ce n'est pas une date, c'est une extrapolation d'un seul cycle de version.
 
 ---
-
-*Lecture seule - aucun wallet - aucune cle API - aucune dependance payante - zero franc engage.*
