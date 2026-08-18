@@ -462,6 +462,72 @@ def instantane():
         else:
             rec = {"fait": False, "motif": "le second endpoint n a pas repondu"}
 
+    # -------------------------------------- recoupement sur RugAlert (tiers reellement independant)
+    # 🔴 Ajoute le 17/08/2026, trouvaille de Spap (pumpkinspool.com). Les deux
+    # ENDPOINTS ci-dessus sont deux RPC PUBLICS -- rien ne prouve qu ils ne
+    # partagent pas la meme infrastructure en amont (deja ecrit dans les
+    # limites_declarees). RugAlert est opere par un tiers (Pumpkin's Pool),
+    # sans cle, CORS ouvert -- une source d origine differente.
+    # VERIFIE le 17/08 en l appelant en direct (profil Shinobi Systems) :
+    # RugAlert n expose QUE le voteCredits de l EPOQUE EN COURS -- pas
+    # d historique multi-epoques, pas de classe chronique/accidentel/sain.
+    # Donc ce recoupement ne peut porter QUE sur l epoque en cours, et
+    # UNIQUEMENT sur les validateurs deja signales ici (chroniques + degrades),
+    # pas sur tout le parc : rate limit 60 requetes/min, un profil = un appel,
+    # et le but est de verifier les cas qu on s apprete a publier, pas un
+    # sondage exhaustif qu on n a pas les moyens de faire tenir dans un run.
+    RUGALERT_BASE = "https://rugalert.pumpkinspool.com/api/v1"
+    rugalert = {"fait": False, "motif": "non tente"}
+    try:
+        rep_ep = requests.get(RUGALERT_BASE + "/epoch", timeout=15)
+        rep_ep.raise_for_status()
+        epoque_ra = (rep_ep.json().get("data") or {}).get("epoch")
+        if epoque_ra != epoque:
+            rugalert = {"fait": False,
+                       "motif": "epoque RugAlert (%s) != epoque RPC (%s) -- pas comparable a cet instant"
+                                % (epoque_ra, epoque)}
+        else:
+            vus, cibles = set(), []
+            for x in (chronicite.get("liste_chroniques", []) + degrades[:15]):
+                cv = x.get("compte_vote")
+                if cv and cv not in vus:
+                    vus.add(cv); cibles.append(x)
+            cibles = cibles[:30]     # plafond dur -- rate limit 60/min, marge large
+            communs, ecarts, echecs_ra = [], [], []
+            for x in cibles:
+                try:
+                    rp = requests.get(RUGALERT_BASE + "/validators/" + x["compte_vote"], timeout=15)
+                    if rp.status_code != 200:
+                        echecs_ra.append({"compte_vote": x["compte_vote"], "statut": rp.status_code})
+                        continue
+                    perf = (rp.json().get("data") or {}).get("performance") or {}
+                    if perf.get("epoch") != epoque or perf.get("voteCredits") is None:
+                        echecs_ra.append({"compte_vote": x["compte_vote"],
+                                          "motif": "pas de voteCredits pour cette epoque cote RugAlert"})
+                        continue
+                    ec = abs(x["credits_epoque"] - perf["voteCredits"]) / max(1, x["credits_epoque"])
+                    ecarts.append(ec); communs.append(x["compte_vote"])
+                except Exception as ex:
+                    echecs_ra.append({"compte_vote": x["compte_vote"],
+                                      "motif": "%s : %s" % (type(ex).__name__, str(ex)[:100])})
+                time.sleep(1.1)   # 60 req/min max -- marge large
+            rugalert = {
+                "fait": True,
+                "source": "rugalert.pumpkinspool.com (operateur tiers independant, sans cle)",
+                "portee": "epoque en cours SEULE, validateurs deja signales ici seulement -- pas tout le parc",
+                "cibles_testees": len(cibles), "validateurs_communs": len(communs),
+                "echecs": echecs_ra,
+                "ecart_relatif_median_pct": round(100 * statistics.median(ecarts), 4) if ecarts else None,
+                "ecart_relatif_max_pct": round(100 * max(ecarts), 4) if ecarts else None,
+            }
+            controles.append(controle(
+                "recoupement RugAlert (tiers independant) sur les validateurs signales : ecart median < 1 %",
+                bool(ecarts) and statistics.median(ecarts) < 0.01,
+                "median %s %% sur %d validateur(s) commun(s) / %d cible(s), %d echec(s)"
+                % (rugalert.get("ecart_relatif_median_pct"), len(communs), len(cibles), len(echecs_ra))))
+    except Exception as ex:
+        rugalert = {"fait": False, "motif": "%s : %s" % (type(ex).__name__, str(ex)[:150])}
+
     alpen = sonder_alpenglow(c)
     gate = sonder_feature_gate(c)
     alpen["feature_gate"] = gate
@@ -503,6 +569,7 @@ def instantane():
         "meilleurs": v_mes[-10:][::-1],
         "alpenglow": alpen,
         "recoupement_second_endpoint": rec,
+        "recoupement_rugalert": rugalert,
         "controles": controles,
         "controles_passes": sum(1 for x in controles if x["passe"]),
         "controles_total": len(controles),
@@ -516,6 +583,9 @@ def instantane():
             "probleme durable et un accident, et c est LUI qu il faut citer.",
             "Les deux endpoints du recoupement sont publics : leur accord ecarte une panne locale, "
             "il ne prouve pas l independance des sources.",
+            "Le recoupement RugAlert porte sur l EPOQUE EN COURS SEULE et sur les validateurs "
+            "deja signales ici, pas sur tout le parc (rate limit de l API tierce) -- il ne "
+            "remplace pas la classification chronique/accident, qui n existe que dans cet outil.",
             "Ceci mesure le schema de credits ACTUEL (SIMD-0033), pas Alpenglow. Le jour ou "
             "Alpenglow s active, la sonde incluse le detectera et cette mesure devra etre refaite.",
         ],
@@ -733,6 +803,16 @@ def rendre_markdown(e):
     else:
         A("🔴 **Recoupement non fait** — %s" % rc.get("motif", ""))
     A("")
+    ra = e.get("recoupement_rugalert", {})
+    if ra.get("fait"):
+        A("**Recoupement RugAlert (tiers indépendant, epoque en cours, validateurs signalés) :** "
+          "%s cible(s), %s validateur(s) commun(s), écart relatif médian **%s %%**, max %s %%, %s échec(s)."
+          % (nb(ra.get("cibles_testees")), nb(ra.get("validateurs_communs")),
+             nb(ra.get("ecart_relatif_median_pct")), nb(ra.get("ecart_relatif_max_pct")),
+             len(ra.get("echecs", []))))
+    else:
+        A("🔴 **Recoupement RugAlert non fait** — %s" % ra.get("motif", ""))
+    A("")
     A("## Ce que cette mesure ne prouve pas")
     A("")
     for lim in e["limites_declarees"]:
@@ -751,10 +831,23 @@ def rendre_html(e):
         corps = ('<div class="alerte"><b>Instantané incomplet — %d champ(s) manquant(s), non comblés.</b><br>%s</div>'
                  % (len(e["champs_manquants"]),
                     "<br>".join("<code>%s</code> : %s" % (m["champ"], m["motif"]) for m in e["champs_manquants"])))
-        cartes = tab_deg = tab_ctrl = ""
+        cartes = tab_deg = tab_ctrl = chron_html = ""
         lims = ""
+        rugalert_html = ""
     else:
         r, d, a = e["reseau"], e["degrades"], e["alpenglow"]
+        # 🔴 CORRIGE le 17/08/2026 : ce generateur HTML n'avait JAMAIS recu la
+        # correction "chronique / accident" du 15/08 (voir le bloc plus haut,
+        # "CHRONIQUE OU ACCIDENT ?"). Le RAPPORT.md (markdown) l'a depuis le
+        # debut, mais index.html continuait d'afficher "Stake concerne" --
+        # l'ancien chiffre a l'epoque en cours seule -- comme SEUL chiffre,
+        # sans le stake CHRONIQUE (le bon a citer) ni le tableau de repartition.
+        # Trouve en verifiant la page deja publiee sur GitHub Pages : elle
+        # affichait 7 220 970 SOL (chiffre dementi d'un facteur 9,7 le 15/08 au
+        # soir) comme metrique vedette, sans aucune mention du chiffre corrige
+        # (747 628 SOL). Meme donnee que le markdown, meme dict `chronicite`
+        # deja calcule plus haut -- il manquait seulement d'etre rendu ici.
+        ch = e.get("chronicite", {})
         corps = ('<div class="%s"><b>%s</b><br><span class="s">Sondé à cette exécution : %s bloc(s) ordinaire(s), '
                  'types de récompense trouvés : <code>%s</code>. Les récompenses <code>Voting</code> existent mais '
                  'sont groupées dans le premier bloc de chaque époque — ancien schéma, pas le mécanisme par slot '
@@ -763,18 +856,62 @@ def rendre_html(e):
                     a.get("verdict", ""), a.get("blocs_examines"), a.get("types_de_recompense")))
         def carte(t, v, n_):
             return '<div class="c"><div class="t">%s</div><div class="v">%s</div><div class="n">%s</div></div>' % (t, v, n_)
-        cartes = "".join([
+        cartes_liste = [
             carte("Latence de vote médiane", "%s slot" % nb(r["latence_implicite_mediane_slots"]),
                   "médiane réseau, %s validateurs" % nb(e["validateurs_mesures"])),
             carte("Crédits/slot médians", nb(r["credits_par_slot_median"]),
                   "%s %% du plafond de %d" % (nb(r["pct_du_plafond_median"]), e["plafond_credits"])),
-            carte("Vote dégradé", nb(d["nombre"]),
-                  "validateurs sous %s %% du plafond" % nb(d["seuil_pct_du_plafond"])),
-            carte("Stake concerné", "%s SOL" % nb(d["stake_concerne_sol"], 0),
-                  "%s %% du stake mesuré" % nb(d["part_du_stake_mesure_pct"])),
+            carte("Vote dégradé (époque en cours)", nb(d["nombre"]),
+                  "validateurs sous %s %% du plafond — instantané, pas un verdict" % nb(d["seuil_pct_du_plafond"])),
+            carte("Stake concerné (époque en cours)", "%s SOL" % nb(d["stake_concerne_sol"], 0),
+                  "%s %% — trompeur seul, voir stake CHRONIQUE ci-dessous" % nb(d["part_du_stake_mesure_pct"])),
+        ]
+        if ch.get("tranchable"):
+            cartes_liste.insert(0, carte(
+                "🔴 Stake chronique — chiffre à citer",
+                "%s SOL" % nb(ch.get("stake_chronique_sol", 0), 0),
+                "%s %% du stake, %s validateur(s) chroniques sur %d époques"
+                % (nb(ch.get("part_stake_chronique_pct")), nb(ch.get("chroniques", 0)),
+                   len(ch.get("epoques_disponibles", [])))))
+        cartes_liste += [
             carte("Délinquants", nb(e["validateurs_delinquants"]), "ne votent plus du tout"),
             carte("Époque", str(e["epoque"]), "%s slots écoulés" % nb(e["slots_ecoules"])),
-        ])
+        ]
+        cartes = "".join(cartes_liste)
+        # ── LE BLOC CHRONIQUE/ACCIDENT, PORTE DEPUIS rendre_markdown() ──────
+        if not ch.get("tranchable"):
+            chron_html = ('<div class="alerte"><b>🔴 Chronique ou accident — NON TRANCHÉ</b><br>'
+                          '<span class="s">%s</span></div>' % (ch.get("motif_si_non", "")))
+        else:
+            eps = ch.get("epoques_disponibles", [])
+            lignes_chron = "".join(
+                '<tr><td class="m">%s…%s</td>%s<td class="r">%s</td><td class="r">%s/%s</td></tr>' % (
+                    x["identite"][:8], x["identite"][-4:],
+                    "".join('<td class="r">%s</td>' % nb(x["serie_pct_du_plafond"].get(p)) for p in eps),
+                    nb(x["stake_sol"], 0), nb(x["epoques_sous_seuil"]), nb(x["epoques_mesurees"]))
+                for x in ch.get("liste_chroniques", []))
+            entetes_eps = "".join("<th class=\"r\">%s</th>" % p for p in eps)
+            tab_chron = ('<div class="tw"><table><thead><tr><th>validateur chronique</th>%s'
+                        '<th class="r">stake (SOL)</th><th class="r">sous seuil</th></tr></thead>'
+                        '<tbody>%s</tbody></table></div>' % (entetes_eps, lignes_chron)) if lignes_chron else ""
+            chron_html = (
+                '<div class="ok-box"><b>Classé sur %d époques (%s), pas sur une seule.</b><br>'
+                '<span class="s">Un validateur est dit <i>chronique</i> s\'il passe sous le seuil sur la majorité '
+                'des époques disponibles, <i>accidentel</i> s\'il n\'y passe qu\'à l\'époque en cours.</span></div>'
+                '<div class="g" style="margin-top:12px">%s%s%s</div>'
+                '<div class="enc" style="margin-top:12px"><b>🔴 Le chiffre à citer est le stake CHRONIQUE : '
+                '%s SOL, soit %s %% du stake mesuré.</b><br><span class="s">Le stake dégradé à l\'instant t '
+                '(carte ci-dessus) est plus gros et trompeur — il gonfle avec le premier gros validateur qui a '
+                'une mauvaise époque.</span></div>%s'
+                % (len(eps), ", ".join(str(p) for p in eps),
+                   carte("🔴 chroniques — signal réel", nb(ch.get("chroniques", 0)),
+                         "%s SOL" % nb(ch.get("stake_chronique_sol", 0), 0)),
+                   carte("🟠 intermittents", nb(ch.get("intermittents", 0)),
+                         "%s SOL" % nb(ch.get("stake_intermittent_sol", 0), 0)),
+                   carte("🟢 accidentels — dégradés seulement maintenant", nb(ch.get("accidentels", 0)),
+                         "%s SOL" % nb(ch.get("stake_accidentel_sol", 0), 0)),
+                   nb(ch.get("stake_chronique_sol", 0), 0), nb(ch.get("part_stake_chronique_pct")),
+                   tab_chron))
         tab_deg = "".join(
             '<tr><td class="m">%s…%s</td><td class="r">%s</td><td class="r">%s %%</td>'
             '<td class="r">%s</td><td class="r">%s</td><td class="r">%s</td></tr>' % (
@@ -786,6 +923,19 @@ def rendre_html(e):
                            % (c["controle"], "🟢" if c["passe"] else "🔴", c["detail"])
                            for c in e["controles"])
         lims = "".join("<li>%s</li>" % l for l in e["limites_declarees"])
+        ra = e.get("recoupement_rugalert", {})
+        if ra.get("fait"):
+            rugalert_html = (
+                '<div class="ok-box"><b>Recoupement RugAlert (tiers ind&eacute;pendant).</b><br>'
+                '<span class="s">&Eacute;poque en cours, validateurs d&eacute;j&agrave; signal&eacute;s ici seulement '
+                '(pas tout le parc &mdash; limite de d&eacute;bit de l\'API tierce) : %s cible(s), %s validateur(s) '
+                'commun(s), &eacute;cart relatif m&eacute;dian <b>%s %%</b>, max %s %%, %s &eacute;chec(s).</span></div>'
+                % (nb(ra.get("cibles_testees")), nb(ra.get("validateurs_communs")),
+                   nb(ra.get("ecart_relatif_median_pct")), nb(ra.get("ecart_relatif_max_pct")),
+                   len(ra.get("echecs", []))))
+        else:
+            rugalert_html = ('<div class="alerte"><b>Recoupement RugAlert non fait.</b><br>'
+                             '<span class="s">%s</span></div>' % (ra.get("motif", "")))
 
     g = """<!doctype html><html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -823,6 +973,8 @@ sans indexeur tiers, sans cl&eacute; API.</p>
 Donc <code>cr&eacute;dits &divide; slots &eacute;coul&eacute;s</code> <b>est</b> une mesure de latence de vote.
 L'hypoth&egrave;se est test&eacute;e &agrave; chaque ex&eacute;cution, pas suppos&eacute;e.</span></div>
 <div class="g">@CARTES@</div>
+<h2>🔴 Chronique ou accident — la question qui décide de tout</h2>
+@CHRON@
 <h2>Le signal est dans la queue, pas dans le classement</h2>
 <p class="s">La m&eacute;diane du r&eacute;seau colle au plafond : classer les &laquo;&nbsp;meilleurs&nbsp;&raquo;
 validateurs n'apprend rien. Ce qui se voit, ce sont les tra&icirc;nards &mdash; et le stake derri&egrave;re eux.</p>
@@ -832,15 +984,18 @@ validateurs n'apprend rien. Ce qui se voit, ce sont les tra&icirc;nards &mdash; 
 <h2>Contr&ocirc;les &mdash; @COK@ / @CTOT@ pass&eacute;s</h2>
 <div class="tw"><table><thead><tr><th>contr&ocirc;le</th><th class="r"></th><th>d&eacute;tail</th></tr></thead>
 <tbody>@CTRL@</tbody></table></div>
+@RUGALERT@
 <h2>Ce que cette mesure ne prouve pas</h2>
 <ul class="s">@LIMS@</ul>
 <footer>@APPELS@ appels RPC &middot; @ECHECS@ &eacute;chec(s) &middot; @DUREE@ s &middot; endpoints publics sans cl&eacute;.
 Aucune valeur interpol&eacute;e : un appel qui &eacute;choue laisse un trou d&eacute;clar&eacute;.</footer>
 </div></body></html>"""
     for k, v in {"@QUAND@": e["horodatage_utc"], "@EPOQUE@": str(e.get("epoque", "—")),
-                 "@ALPEN@": corps, "@CARTES@": cartes, "@DEG@": tab_deg, "@CTRL@": tab_ctrl,
+                 "@ALPEN@": corps, "@CARTES@": cartes, "@CHRON@": chron_html,
+                 "@DEG@": tab_deg, "@CTRL@": tab_ctrl,
                  "@COK@": str(e.get("controles_passes", 0)), "@CTOT@": str(e.get("controles_total", 0)),
-                 "@LIMS@": lims, "@APPELS@": nb(e["appels_rpc"]), "@ECHECS@": nb(e["echecs_rpc"]),
+                 "@LIMS@": lims, "@RUGALERT@": rugalert_html,
+                 "@APPELS@": nb(e["appels_rpc"]), "@ECHECS@": nb(e["echecs_rpc"]),
                  "@DUREE@": nb(e["duree_s"])}.items():
         g = g.replace(k, v)
     return g
